@@ -1,0 +1,9 @@
+/* frontend/src/index.css */
+@import "tailwindcss";
+
+/* Tu CSS global debe ir dentro de un layer */
+@layer utilities {
+  body {
+    @apply bg-slate-50 text-slate-900;
+  }
+}
