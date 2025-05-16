@@ -8,12 +8,11 @@
 
 1. [Requisitos previos](#requisitos-previos)
 2. [Instalación paso a paso](#instalación-paso-a-paso)
-3. [Variables de entorno](#variables-de-entorno)
-4. [Arranque en desarrollo](#arranque-en-desarrollo)
-5. [Flujo de trabajo diario](#flujo-de-trabajo-diario)
-6. [Scripts útiles](#scripts-útiles)
-7. [Solución de problemas](#solución-de-problemas)
-8. [Preparar producción](#preparar-producción)
+3. [Arranque en desarrollo](#arranque-en-desarrollo)
+4. [Flujo de trabajo diario](#flujo-de-trabajo-diario)
+5. [Scripts útiles](#scripts-útiles)
+6. [Solución de problemas](#solución-de-problemas)
+7. [Preparar producción](#preparar-producción)
 
 ---
 
@@ -43,29 +42,6 @@ $ cd frontend
 $ npm install
 $ cd ..
 ```
-
----
-
-## Variables de entorno
-
-1. **Raíz del proyecto**: crea (o copia de `.env.example`) un archivo `.env` con:
-
-   ```env
-   MYSQL_ROOT_PASSWORD=supersecret
-   MYSQL_DATABASE=vidacel
-   MYSQL_USER=app
-   MYSQL_PASSWORD=apppass
-   ```
-
-2. **Backend (`backend/.env`)** — **no es necesario editarlo**; Docker inyecta las variables del paso anterior.
-
-3. **Frontend (`frontend/.env`)**:
-
-   ```env
-   VITE_API_URL=http://localhost:5000/api
-   ```
-
-> 🔒 **Nunca** subas archivos `.env` a un repo público.
 
 ---
 
