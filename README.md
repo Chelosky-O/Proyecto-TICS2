@@ -110,23 +110,6 @@ Accede a:
    cd frontend && npm run build
    ```
 
-2. **(Opcional) Servicio `frontend` en Docker**
-
-   Crea `frontend/Dockerfile` multi‑stage y añade un nuevo servicio al `docker-compose.yml`. Ejemplo:
-
-   ```dockerfile
-   FROM node:20-alpine AS builder
-   WORKDIR /app
-   COPY package*.json ./
-   RUN npm install
-   COPY . .
-   RUN npm run build
-
-   FROM nginx:1.27-alpine
-   COPY --from=builder /app/dist /usr/share/nginx/html
-   EXPOSE 80
-   ```
-
 3. **Levantar stack completo**:
 
    ```bash
@@ -136,4 +119,3 @@ Accede a:
 ---
 
 Disfruta del 🚀 **Vidacel Task Manager**.
-¿Dudas? Abre un issue o escribe en el canal de #dev.
