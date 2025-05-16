@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: vidacel-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root_pass
+      MYSQL_DATABASE: vidacel_tasks
+      MYSQL_USER: app_user
+      MYSQL_PASSWORD: app_pass
+    ports:
+      - '3306:3306'
+    volumes:
+      - db_data:/var/lib/mysql
+
+  # (Opcional) tu backend también en contenedor:
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: vidacel-api
+    restart: unless-stopped
+    env_file: 
+      - ./backend/.env
+    ports:
+      - '4000:4000'
+    depends_on:
+      - db
+    networks:
+      - app-network
+
+volumes:
+  db_data:
+
+networks:
+  app-network:
+    driver: bridge
