@@ -35,7 +35,7 @@
 
 ```bash
 # 1. Clonar el repositorio
-$ git clone https://github.com/<tu-org>/vidacel-task-manager.git
+$ git clone https://github.com/Chelosky-O/vidacel-task-manager.git
 $ cd vidacel-task-manager
 
 # 2. Instalar dependencias del frontend
