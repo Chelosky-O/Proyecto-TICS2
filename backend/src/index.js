@@ -1,48 +1,52 @@
-require('dotenv').config();                // lee backend/.env + variables de Docker
-const express = require('express');
-const cors = require('cors');
-const { Sequelize, DataTypes } = require('sequelize');
+require('dotenv').config();
+
+const express  = require('express');
+const cors     = require('cors');
+const bcrypt   = require('bcryptjs');
+
+const { sequelize, Role, User } = require('./models');
+const auth = require('./middleware/auth');
 
 const app = express();
-app.use(cors()).use(express.json());
+app.use(cors());
+app.use(express.json());
+app.use(auth);
 
-// 1. Conexión a MySQL
-const sequelize = new Sequelize(
-  process.env.DB_NAME,
-  process.env.DB_USER,
-  process.env.DB_PASSWORD,
-  { host: process.env.DB_HOST, dialect: 'mysql' }
-);
+/* ----- Rutas ----- */
+app.use('/api/auth',   require('./routes/auth.routes'));
+app.use('/api/tasks',  require('./routes/task.routes'));
+app.use('/api/users',  require('./routes/user.routes'));
+app.use('/api/reports', require('./routes/report.routes'));
+app.get('/api/health', (_, res) => res.json({ ok: true }));
 
-// 2. Modelo de ejemplo
-const Task = sequelize.define('Task', {
-  title:       { type: DataTypes.STRING, allowNull: false },
-  description: { type: DataTypes.TEXT }
-});
-
-// 3. Sincroniza tablas en dev
+/* ----- Bootstrap DB + seed ----- */
 (async () => {
   try {
     await sequelize.authenticate();
-    console.log('🎉 MySQL conectado');
-    await sequelize.sync();               // crea tabla si no existe
+    await sequelize.sync({ alter: true });
+
+    const [solicitante] = await Role.findOrCreate({ where: { name: 'solicitante' } });
+    const [sg]          = await Role.findOrCreate({ where: { name: 'sg' } });
+    const [adminRole]   = await Role.findOrCreate({ where: { name: 'admin' } });
+
+    const adminEmail = 'admin@vidacel.local';
+    const exists = await User.findOne({ where: { email: adminEmail } });
+    if (!exists) {
+      await User.create({
+        name:     'Administrador',
+        email:    adminEmail,
+        password: bcrypt.hashSync('admin123', 10),
+        area:     'Gerencia',
+        RoleId:   adminRole.id
+      });
+      console.log(`👤 Usuario admin creado → ${adminEmail} / admin123`);
+    }
+
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () =>
+      console.log(`🚀 API escuchando en http://localhost:${PORT}`)
+    );
   } catch (err) {
-    console.error('❌ Error de BDD:', err);
+    console.error('❌ Error al iniciar la API:', err);
   }
 })();
-
-// 4. Rutas
-app.get('/api/health', (_, res) => res.json({ ok: true }));
-
-app.get('/api/tasks', async (_, res) => {
-  const tasks = await Task.findAll();
-  res.json(tasks);
-});
-
-app.post('/api/tasks', async (req, res) => {
-  const task = await Task.create(req.body);
-  res.status(201).json(task);
-});
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 API http://localhost:${PORT}`));

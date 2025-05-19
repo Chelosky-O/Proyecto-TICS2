@@ -1,121 +1,98 @@
-﻿# Vidacel Task Manager – Guía de Instalación y Uso
+﻿# Vidacel Task Manager
 
-> React + Vite (fuera de Docker) | API Node/Express + Sequelize + MySQL (en Docker)
-
----
-
-## Índice rápido
-
-1. [Requisitos previos](#requisitos-previos)
-2. [Instalación paso a paso](#instalación-paso-a-paso)
-3. [Arranque en desarrollo](#arranque-en-desarrollo)
-4. [Flujo de trabajo diario](#flujo-de-trabajo-diario)
-5. [Scripts útiles](#scripts-útiles)
-6. [Solución de problemas](#solución-de-problemas)
-7. [Preparar producción](#preparar-producción)
+> **Stack** : React + Vite (frontend) · Node/Express + Sequelize · MySQL (back‑ & DB in Docker)
+>
+> **Roles** : solicitante · sg (Servicios Generales) · admin (Gerencia)
+>
+> **Flujo principal** : solicitante crea → admin asigna → SG ejecuta → reportes.
 
 ---
 
-## Requisitos previos
+## 0 · Requisitos
 
-| Herramienta        | Versión mínima | Comprobación             |
-| ------------------ | -------------- | ------------------------ |
-| **Docker Desktop** | 24.x           | `docker --version`       |
-| **Docker Compose** | 2.5            | `docker compose version` |
-| **Node.js**        | 20 LTS         | `node -v`                |
-| **npm**            | 10+            | `npm -v`                 |
-| Git (opcional)     | 2.40           | `git --version`          |
-
-> En Windows/Mac basta con instalar **Docker Desktop**. En Linux instala `docker`, `docker-compose-plugin` y agrega tu usuario al grupo `docker` (`sudo usermod -aG docker $USER`).
+| Herramienta           | Versión recomendada | Comprobación             |
+| --------------------- | ------------------- | ------------------------ |
+| Docker Desktop        | ≥ 24                | `docker --version`       |
+| Docker Compose Plugin | ≥ 2.5               | `docker compose version` |
+| Node.js               | 20 LTS              | `node -v`                |
+| npm                   | ≥ 10                | `npm -v`                 |
+| Git (opcional)        | —                   | `git --version`          |
 
 ---
 
-## Instalación paso a paso
+## 1 · Clonar e instalar
 
-```bash
-# 1. Clonar el repositorio
-$ git clone https://github.com/Chelosky-O/vidacel-task-manager.git
-$ cd vidacel-task-manager
+```powershell
+PS> git clone https://github.com/Chelosky-O/vidacel-task-manager.git
+PS> cd Proyecto-TICS2
 
-# 2. Instalar dependencias del frontend
-$ cd frontend
-$ npm install
-$ cd ..
+# Instalar dependencias backend
+PS> cd backend; npm i; cd ..
+
+# Instalar dependencias frontend
+PS> cd frontend; npm i; cd ..
+```
+
+---
+## 2 · Arranque en desarrollo
+
+```powershell
+# Terminal 1 – backend + MySQL
+PS> docker compose up --build
+
+# Terminal 2 – frontend (hot‑reload)
+PS> cd frontend
+PS> npm run dev -- --host
+```
+
+* API → `http://localhost:5000/api/health`
+* SPA → `http://localhost:5173`
+
+Al iniciarse la BBDD se crea un **usuario admin** por defecto:
+
+```
+admin@vidacel.local / admin123
 ```
 
 ---
 
-## Arranque en desarrollo
+## 4 · Flujo diario
 
-En **dos terminales**:
+1. `docker compose up`  (backend + db)
+2. `npm run dev` en `frontend/`
+3. ⌨️ Edita código → backend recarga (nodemon), frontend recarga (Vite).
+4. `Ctrl‑C` para detener; los datos persisten en el volumen `db_data`.
 
-```bash
-# Terminal A — backend + MySQL
-docker compose up --build   # en la raíz del proyecto
+---
+
+## 5 · Estructura principal
+
+```
+vidacel-task-manager/
+│
+├─ docker-compose.yml        # backend + db
+├─ .env                      # creds globales
+│
+├─ backend/
+│   ├─ Dockerfile            # nodemon
+│   ├─ package.json
+│   └─ src/ (rutas, modelos, middleware)
+│
+└─ frontend/
+    ├─ vite.config.js
+    ├─ package.json
+    └─ src/ (pages, api, auth, layout)
 ```
 
-```bash
-# Terminal B — frontend
-cd frontend
-npm run dev -- --host       # Vite mostrará la URL (default: http://localhost:5173)
-```
-
-* Nodemon dentro del contenedor recarga el API en caliente.
-* Vite recarga la SPA al guardar cambios.
-
-Accede a:
-
-* **SPA** → `http://localhost:5173`
-* **API Health** → `http://localhost:5000/api/health`
-
 ---
 
-## Flujo de trabajo diario
+## 6 · Scripts útiles
 
-1. **Levanta contenedores** (`docker compose up`)
-2. **Corre Vite** (`npm run dev`)
-3. Edita código
-4. Revisa la consola para hot‑reloads
-5. **Detén** con `Ctrl‑C` (datos de MySQL se guardan en el volumen `db_data`)
-
----
-
-## Scripts útiles
-
-| Ubicación  | Script            | Acción                                     |
-| ---------- | ----------------- | ------------------------------------------ |
-| `frontend` | `npm run dev`     | Ejecuta Vite con hot‑reload                |
-|            | `npm run build`   | Genera `dist/` listo para producción       |
-|            | `npm run preview` | Sirve el build para verificación local     |
-| `backend`  | `npm run start`   | Inicia API (Nodemon dentro del contenedor) |
+| Carpeta  | Script                | Descripción                  |
+| -------- | --------------------- | ---------------------------- |
+| backend  | `npm start` (nodemon) | Usado dentro del contenedor  |
+| frontend | `npm run dev`         | Vite + Hot Reload            |
+|          | `npm run build`       | Compilación estática `dist/` |
+|          | `npm run preview`     | Sirve la build localmente    |
 
 ---
-
-## Solución de problemas
-
-| Mensaje / Síntoma                            | Posible causa & solución                                                      |
-| -------------------------------------------- | ----------------------------------------------------------------------------- |
-| `Access denied for user ...`                 | Verifica variables en `.env` o recrea DB con usuario/contraseña correctos.    |
-| `Cannot apply unknown utility class` en Vite | Asegúrate de usar Tailwind v4 y envolver `@apply` en `@layer utilities`.      |
-| Cambios en backend no recargan               | Confirma que el volumen `./backend:/app` esté activo en `docker-compose.yml`. |
-| Puerto 3306 o 5000 ocupado                   | Modifica puertos expuestos en `docker-compose.yml`.                           |
-
----
-
-## Preparar producción
-
-1. **Generar build del frontend** (fuera de Docker):
-
-   ```bash
-   cd frontend && npm run build
-   ```
-
-3. **Levantar stack completo**:
-
-   ```bash
-   docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
-   ```
-
----
-
-Disfruta del 🚀 **Vidacel Task Manager**.

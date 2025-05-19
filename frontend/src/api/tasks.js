@@ -1,17 +1,13 @@
-const API = import.meta.env.VITE_API_URL;
+// frontend/src/api/tasks.js
+import api from './client';
 
-export async function getTasks() {
-  const res = await fetch(`${API}/tasks`);
-  if (!res.ok) throw new Error('No se pudieron obtener las tareas');
-  return res.json();
-}
+export const getMyTasks        = () => api.get('/tasks/mine');
+export const getAssignedTasks  = () => api.get('/tasks/assigned');
+export const getAllTasks       = () => api.get('/tasks');
+export const getUnassigned     = () => api.get('/tasks/unassigned');
 
-export async function createTask(data) {
-  const res = await fetch(`${API}/tasks`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) throw new Error('Error al crear la tarea');
-  return res.json();
-}
+export const createTask  = (data)             => api.post('/tasks', data);
+export const assignTask  = (id, userId)       => api.patch(`/tasks/${id}/assign/${userId}`);
+export const updateState = (id, status)       => api.patch(`/tasks/${id}/status`, { status });
+export const changeStatus = (id, status) => api.patch(`/tasks/${id}/status`, { status });
+
