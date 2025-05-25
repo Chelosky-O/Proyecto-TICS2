@@ -17,7 +17,7 @@ export default function NewTask() {
   const [form, set] = useState({
     title: '', description: '', location: '',
     type: null, priority: priorityOpts[1],
-    when: new Date()
+    dueAt: new Date()
   });
   const [err, setErr] = useState('');
 
@@ -30,7 +30,7 @@ export default function NewTask() {
         location: form.location,
         type: form.type?.value,
         priority: form.priority?.value,
-        when: form.when
+        dueAt: form.dueAt
       });
       nav('/tasks');
     } catch (e) {
@@ -80,8 +80,8 @@ export default function NewTask() {
             onChange={priority => set({ ...form, priority })}
           />
           <DatePicker
-            selected={form.when}
-            onChange={date => set({ ...form, when: date })}
+            selected={form.dueAt}
+            onChange={date => set({ ...form, dueAt: date })}
             showTimeSelect
             dateFormat="Pp"
             className="w-full p-2 border rounded"
