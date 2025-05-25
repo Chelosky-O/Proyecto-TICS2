@@ -88,7 +88,10 @@ router.patch('/:id/status', rbac('sg'), async (req, res) => {
 
   if (!canMove) return res.status(409).json({ message: 'Transición inválida' });
 
-  await task.update({ status });
+  const updates = { status };
+  if (status === 'Listo') updates.completedAt = new Date();
+  
+  await task.update({ updates });
   res.json(task);
 });
 
