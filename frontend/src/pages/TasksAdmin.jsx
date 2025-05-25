@@ -21,11 +21,14 @@ export default function TasksAdmin() {
         <thead className="bg-slate-100">
           <tr>
             <th className="p-2 text-left">Título / Tipo</th>
-            <th className="p-2">Fecha</th>
             <th className="p-2">Área</th>              {/* 👈 NUEVA */}
             <th className="p-2">Solicitante</th>
-            <th className="p-2">Ejecutor</th>
             <th className="p-2">Estado</th>
+            <th className="p-2">Ejecutor</th>
+            <th className="p-2">Creada</th>
+            <th className="p-2">Límite</th>
+            <th className="p-2">Asignada</th>
+            <th className="p-2">Completada</th>
           </tr>
         </thead>
         <tbody>
@@ -36,10 +39,14 @@ export default function TasksAdmin() {
                 <div className="text-xs text-slate-500">{t.type}</div>
               </td>
               <td className="p-2 text-center">{t.dueAt ? format(new Date(t.dueAt), 'P p') : '—'}</td>
-              <td className="p-2 text-center">{t.author?.area ?? '—'}</td>     {/* 👈 */}
-              <td className="p-2 text-center">{t.author?.name ?? '—'}</td>
-              <td className="p-2 text-center">{t.executor?.name ?? 'Sin asignar'}</td>
+              <td className="p-2 text-center">{t.author?.area ?? '—'}</td>     
+              <td className="p-2 text-center">{t.author?.name ?? '—'}</td>     
               <td className="p-2 text-center">{t.status}</td>
+              <td className="p-2 text-center">{t.executor?.name ?? 'Sin asignar'}</td>
+              <td className="p-2 text-center">{fmt(t.requestedAt)}</td>
+              <td className="p-2 text-center">{fmt(t.dueAt)}</td>
+              <td className="p-2 text-center">{fmt(t.assignedAt)}</td>
+              <td className="p-2 text-center">{fmt(t.completedAt)}</td>
             </tr>
           ))}
         </tbody>
