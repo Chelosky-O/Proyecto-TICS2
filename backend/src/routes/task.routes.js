@@ -21,6 +21,7 @@ router.post(
 
     const task = await Task.create({
       ...req.body,
+      requestedAt: new Date(),
       authorId: req.auth.id
     });
     res.status(201).json(task);
@@ -67,7 +68,7 @@ router.patch('/:id/assign/:userId', rbac('admin'), async (req, res) => {
   const { id, userId } = req.params;
   const task = await Task.findByPk(id);
   if (!task) return res.status(404).end();
-  await task.update({ executorId: userId });
+  await task.update({ executorId: userId, assignedAt: new Date() });
   res.json(task);
 });
 
