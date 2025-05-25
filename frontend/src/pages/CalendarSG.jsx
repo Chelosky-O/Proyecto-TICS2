@@ -22,12 +22,12 @@ export default function CalendarSG() {
   }, [user.role]);
 
   const events = tasks
-    .filter(t => t.when)
+    .filter(t => t.dueAt)
     .map(t => ({
       ...t,
       title: `${t.title} (${t.status})`,
-      start: new Date(t.when),
-      end:   new Date(t.when),
+      start: new Date(t.dueAt),
+      end:   new Date(t.dueAt),
       allDay: false
     }));
 
@@ -54,7 +54,7 @@ export default function CalendarSG() {
             <div>
               <strong>{t.title}</strong>
               <div className="text-xs text-slate-600">
-                {t.when ? format(new Date(t.when), 'P p') : 'Sin fecha'} — Área: {t.author?.area}
+                {t.dueAt ? format(new Date(t.dueAt), 'P p') : 'Sin fecha'} — Área: {t.author?.area}
               </div>
               <div className="text-xs">Estado: {t.status}</div>
             </div>
