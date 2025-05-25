@@ -35,7 +35,7 @@ export default function TasksAdmin() {
                 <strong>{t.title}</strong>
                 <div className="text-xs text-slate-500">{t.type}</div>
               </td>
-              <td className="p-2 text-center">{t.when ? format(new Date(t.when), 'P p') : '—'}</td>
+              <td className="p-2 text-center">{t.dueAt ? format(new Date(t.dueAt), 'P p') : '—'}</td>
               <td className="p-2 text-center">{t.author?.area ?? '—'}</td>     {/* 👈 */}
               <td className="p-2 text-center">{t.author?.name ?? '—'}</td>
               <td className="p-2 text-center">{t.executor?.name ?? 'Sin asignar'}</td>
