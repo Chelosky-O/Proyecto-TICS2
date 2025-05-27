@@ -99,12 +99,12 @@ router.patch('/:id/status', rbac('sg'), async (req, res) => {
   // Reglas simples de transición
   const canMove =
     (task.status === 'Pendiente'   && status === 'En Progreso') ||
-    (task.status === 'En Progreso' && status === 'Listo');
+    (task.status === 'En Progreso' && status === 'Finalizada');
 
   if (!canMove) return res.status(409).json({ message: 'Transición inválida' });
 
   const updates = { status };
-  if (status === 'Listo') updates.completedAt = new Date();
+  if (status === 'Finalizada') updates.completedAt = new Date();
   
   await task.update({ updates });
   res.json(task);
