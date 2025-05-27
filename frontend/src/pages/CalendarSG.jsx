@@ -68,7 +68,7 @@ export default function CalendarSG() {
                   </button>
                 )}
                 {t.status === 'En Progreso' && (
-                  <button onClick={() => handleStatus(t, 'Listo')}
+                  <button onClick={() => handleStatus(t, 'Finalizada')}
                           className="px-2 py-1 bg-green-600 text-white rounded text-xs">
                     Finalizar
                   </button>
