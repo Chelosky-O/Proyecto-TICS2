@@ -15,6 +15,7 @@ app.use(auth);
 /* ----- Rutas ----- */
 app.use('/api/auth',   require('./routes/auth.routes'));
 app.use('/api/tasks',  require('./routes/task.routes'));
+app.use('/api/calendar',require('./routes/calendar.routes'));
 app.use('/api/users',  require('./routes/user.routes'));
 app.use('/api/reports', require('./routes/report.routes'));
 app.get('/api/health', (_, res) => res.json({ ok: true }));
