@@ -6,6 +6,12 @@ const rbac = require('../middleware/rbac');
 
 const router = Router();
 
+/* ----------  GET /api/users/me  ---------- */
+router.get('/me', async (req, res) => {
+  const { id, name, email, area } = req.auth;   // viene del token
+  res.json({ id, name, email, area, role: req.auth.role });
+});
+
 /* ----- GET /api/users  (lista completa) ----- */
 router.get('/', rbac('admin'), async (_, res) => {
   const users = await User.findAll({
