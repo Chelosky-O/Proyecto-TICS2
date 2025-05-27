@@ -28,6 +28,21 @@ router.post(
   }
 );
 
+/* ----------  PATCH /api/tasks/:id/due  (planificar) ---------- */
+router.patch('/:id/due', rbac('solicitante', 'admin'), async (req, res) => {
+  const task = await Task.findByPk(req.params.id);
+  if (!task) return res.status(404).end();
+
+  // Sólo el autor o el admin pueden planificar mientras está Pendiente
+  if (req.auth.role !== 'admin' && task.authorId !== req.auth.id)
+    return res.status(403).end();
+  if (task.status !== 'Pendiente')
+    return res.status(409).json({ message: 'La tarea ya fue iniciada' });
+
+  await task.update({ dueAt: req.body.dueAt });
+  res.json(task);
+});
+
 /* ----------  Solicitante: mis tareas ---------- */
 router.get('/mine', rbac('solicitante', 'admin'), async (req, res) => {
   const tasks = await Task.findAll({ where: { authorId: req.auth.id } });
