@@ -5,7 +5,7 @@ module.exports = (sequelize) => sequelize.define('Task', {
   description: { type: DataTypes.TEXT },
   location:    { type: DataTypes.STRING },
   priority:    { type: DataTypes.ENUM('Alta','Media','Baja'), defaultValue: 'Media' },
-  status:      { type: DataTypes.ENUM('Pendiente','En Progreso','Finalizada'), defaultValue: 'Pendiente' },
+  status:      { type: DataTypes.ENUM('Pendiente','En Progreso','Finalizada'),allowNull: false, defaultValue: 'Pendiente' },
       /* NUEVAS fechas */
   requestedAt: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
   dueAt:       { type: DataTypes.DATE },
