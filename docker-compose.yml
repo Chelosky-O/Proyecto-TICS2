@@ -23,6 +23,9 @@ services:
       DB_NAME: ${MYSQL_DATABASE}
       PORT: 5000
       NODE_ENV: development
+      GMAIL_USER: ${GMAIL_USER}
+      GMAIL_PASS: ${GMAIL_PASS}
+      MAIL_FROM: ${MAIL_FROM}
     depends_on:
       - db
     volumes:

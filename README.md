@@ -51,7 +51,7 @@ PS> npm run dev -- --host
 Al iniciarse la BBDD se crea un **usuario admin** por defecto:
 
 ```
-admin@vidacel.local / admin123
+vidaceltaskmanager@gmail.com / 123
 ```
 
 ---

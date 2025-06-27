@@ -30,17 +30,17 @@ app.get('/api/health', (_, res) => res.json({ ok: true }));
     const [sg]          = await Role.findOrCreate({ where: { name: 'sg' } });
     const [adminRole]   = await Role.findOrCreate({ where: { name: 'admin' } });
 
-    const adminEmail = 'admin@vidacel.local';
+    const adminEmail = 'vidaceltaskmanager@gmail.com';
     const exists = await User.findOne({ where: { email: adminEmail } });
     if (!exists) {
       await User.create({
         name:     'Administrador',
         email:    adminEmail,
-        password: bcrypt.hashSync('admin123', 10),
+        password: bcrypt.hashSync('123', 10),
         area:     'Gerencia',
         RoleId:   adminRole.id
       });
-      console.log(`👤 Usuario admin creado → ${adminEmail} / admin123`);
+      console.log(`👤 Usuario admin creado → ${adminEmail} / 123`);
     }
 
     const PORT = process.env.PORT || 5000;
