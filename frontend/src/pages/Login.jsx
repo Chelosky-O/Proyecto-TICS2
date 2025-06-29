@@ -341,14 +341,6 @@ export default function Login() {
             }
           }
 
-          /* Prevenir selección de texto en toda la página */
-          * {
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
-          }
-
           /* Permitir selección solo en inputs */
           input,
           textarea {
