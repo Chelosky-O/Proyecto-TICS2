@@ -149,4 +149,33 @@ router.patch('/:id/status', rbac('sg', 'admin'), async (req, res) => {
   res.json(task);
 });
 
+/* ----------  PATCH /tasks/:id  (actualizar tarea) ---------- */
+router.patch(
+  '/:id',
+  rbac('admin'),
+  body('title').optional().notEmpty().withMessage('Título requerido'),
+  body('type').optional().isIn(['Retiro', 'Traslados', 'Compras', 'Varios']),
+  body('priority').optional().isIn(['Alta', 'Media', 'Baja']),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
+    const task = await Task.findByPk(req.params.id);
+    if (!task) return res.status(404).end();
+    // Solo campos editables
+    const fields = ['title', 'description', 'location', 'type', 'priority', 'dueAt'];
+    const updates = {};
+    for (const f of fields) if (req.body[f] !== undefined) updates[f] = req.body[f];
+    await task.update(updates);
+    res.json(task);
+  }
+);
+
+/* ----------  DELETE /tasks/:id  ---------- */
+router.delete('/:id', rbac('admin'), async (req, res) => {
+  const task = await Task.findByPk(req.params.id);
+  if (!task) return res.status(404).end();
+  await task.destroy();
+  res.sendStatus(204);
+});
+
 module.exports = router;

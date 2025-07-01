@@ -55,15 +55,15 @@ export default function Dashboard() {
       {
         to: '/tasks/new',
         label: 'Crear Tarea',
-        description: 'Crea nuevas tareas y asígnalas a los usuarios.',
+        description: 'Rellena el formulario con tu solicitud.',
         icon: 'plus',
         color: 'green',
         action: 'Crear tarea'
       },
       {
         to: '/calendar',
-        label: 'Calendario (SG)',
-        description: 'Visualiza el calendario de tareas de Servicios Generales.',
+        label: 'Calendario',
+        description: 'Visualiza el calendario de tareas.',
         icon: 'calendar',
         color: 'blue',
         action: 'Ver calendario'
@@ -79,7 +79,7 @@ export default function Dashboard() {
       {
         to: '/users',
         label: 'Usuarios',
-        description: 'Gestiona los usuarios y sus permisos en el sistema.',
+        description: 'Gestiona los usuarios en el sistema.',
         icon: 'user-group',
         color: 'indigo',
         action: 'Gestionar'

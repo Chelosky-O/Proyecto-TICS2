@@ -153,7 +153,7 @@ export default function NewTask() {
       <div className="mb-8">
         <div>
           <h2 className="text-3xl font-bold text-gray-900">Nueva Solicitud</h2>
-          <p className="mt-2 text-lg text-gray-600">Crea una nueva solicitud de servicio para tu área</p>
+          <p className="mt-2 text-lg text-gray-600">Crea una nueva solicitud de servicio</p>
         </div>
       </div>
 

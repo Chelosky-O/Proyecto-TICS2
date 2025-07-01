@@ -10,4 +10,6 @@ export const createTask  = (data)             => api.post('/tasks', data);
 export const assignTask  = (id, userId)       => api.patch(`/tasks/${id}/assign/${userId}`);
 export const updateState = (id, status)       => api.patch(`/tasks/${id}/status`, { status });
 export const changeStatus = (id, status) => api.patch(`/tasks/${id}/status`, { status });
+export const updateTask   = (id, data)         => api.patch(`/tasks/${id}`, data);
+export const deleteTask   = (id)               => api.delete(`/tasks/${id}`);
 
