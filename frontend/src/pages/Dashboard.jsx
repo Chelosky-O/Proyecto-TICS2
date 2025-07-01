@@ -26,8 +26,8 @@ export default function Dashboard() {
       },
       {
         to: '/tasks/new',
-        label: 'Nueva Solicitud',
-        description: 'Crea una nueva solicitud de servicio o requerimiento.',
+        label: 'Crear Tarea',
+        description: 'Rellena el formulario con alguna solicitud',
         icon: 'plus',
         color: 'green',
         action: 'Crear solicitud'
@@ -55,7 +55,7 @@ export default function Dashboard() {
       {
         to: '/tasks/new',
         label: 'Crear Tarea',
-        description: 'Rellena el formulario con tu solicitud.',
+        description: 'Rellena el formulario con alguna solicitud.',
         icon: 'plus',
         color: 'green',
         action: 'Crear tarea'

@@ -65,7 +65,13 @@ router.patch('/:id/due', rbac('solicitante', 'admin'), async (req, res) => {
 
 /* ----------  Solicitante: mis tareas ---------- */
 router.get('/mine', rbac('solicitante', 'admin'), async (req, res) => {
-  const tasks = await Task.findAll({ where: { authorId: req.auth.id } });
+  const tasks = await Task.findAll({ 
+    where: { authorId: req.auth.id },
+    include: [
+      { model: User, as: 'author', attributes: ['id', 'name', 'area', 'email'] },
+      { model: User, as: 'executor', attributes: ['id', 'name', 'email'] }
+    ]
+  });
   res.json(tasks);
 });
 
