@@ -27,11 +27,23 @@ router.post(
       authorId: req.auth.id
     });
 
-    /* mail: solicitante + admin 
+    /*
+
+    //version defensiva
+    
+        const author = await User.findByPk(req.auth.id);
+    await sendMail({
+      to: [...new Set([author.email, process.env.GMAIL_USER])],
+      ...tpl.newTask(task, req.auth)
+    });
+
+    */
+
+     /* mail: solicitante + admin */
     await sendMail({
       to: [req.auth.email, process.env.GMAIL_USER],
       ...tpl.newTask(task, req.auth)
-    });*/
+    });
 
     res.status(201).json(task);
   }
