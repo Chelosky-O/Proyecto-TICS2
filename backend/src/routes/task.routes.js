@@ -27,11 +27,11 @@ router.post(
       authorId: req.auth.id
     });
 
-    /* mail: solicitante + admin */
+    /* mail: solicitante + admin 
     await sendMail({
       to: [req.auth.email, process.env.GMAIL_USER],
       ...tpl.newTask(task, req.auth)
-    });
+    });*/
 
     res.status(201).json(task);
   }
