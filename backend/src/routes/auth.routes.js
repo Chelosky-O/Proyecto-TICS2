@@ -10,16 +10,25 @@ const router = Router();
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
+  // trae también el rol
   const user = await User.findOne({ where: { email }, include: Role });
-  if (!user || !bcrypt.compareSync(password, user.password))
-    return res.status(401).json({ message: 'Credenciales inválidas' });
 
-  /*  Payload con name, role & area — el FE lo necesita */
+  // ① usuario existe, ② contraseña ok, ③ está activo
+  if (
+    !user ||
+    !user.active ||
+    !bcrypt.compareSync(password, user.password)
+  )
+    return res
+      .status(401)
+      .json({ message: 'Credenciales inválidas o usuario inactivo' });
+
+  /*  payload con datos que necesita el FE */
   const token = jwt.sign(
     {
       id:   user.id,
       name: user.name,
-      role: user.Role.name,   // 'admin' | 'sg' | 'solicitante'
+      role: user.Role.name, // 'admin' | 'sg' | 'solicitante'
       area: user.area
     },
     process.env.JWT_SECRET,

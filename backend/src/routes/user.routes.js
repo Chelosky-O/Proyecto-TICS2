@@ -1,18 +1,19 @@
 // backend/src/routes/user.routes.js
 const { Router } = require('express');
 const bcrypt = require('bcryptjs');
+const { body, validationResult } = require('express-validator');
 const { User, Role } = require('../models');
 const rbac = require('../middleware/rbac');
 
 const router = Router();
 
-/* ----------  GET /api/users/me  ---------- */
+/* ---------- GET /api/users/me ---------- */
 router.get('/me', async (req, res) => {
-  const { id, name, email, area } = req.auth;   // viene del token
-  res.json({ id, name, email, area, role: req.auth.role });
+  const { id, name, email, area, role } = req.auth;
+  res.json({ id, name, email, area, role });
 });
 
-/* ----- GET /api/users  (lista completa) ----- */
+/* ---------- GET /api/users ---------- */
 router.get('/', rbac('admin'), async (_, res) => {
   const users = await User.findAll({
     include: { model: Role, attributes: ['name'] },
@@ -21,7 +22,7 @@ router.get('/', rbac('admin'), async (_, res) => {
   res.json(users);
 });
 
-/* ----- GET /api/users/sg (ejecutores) ----- */
+/* ---------- GET /api/users/sg ---------- */
 router.get('/sg', rbac('admin'), async (_, res) => {
   const sgRole = await Role.findOne({ where: { name: 'sg' } });
   const execs = await User.findAll({
@@ -31,31 +32,82 @@ router.get('/sg', rbac('admin'), async (_, res) => {
   res.json(execs);
 });
 
-/* ----- POST /api/users  (crear) ----- */
-router.post('/', rbac('admin'), async (req, res) => {
-  const { name, email, password, area, role } = req.body;
+/* ---------- POST /api/users  (crear) ---------- */
+router.post(
+  '/',
+  rbac('admin'),
+  body('name').notEmpty(),
+  body('email').isEmail(),
+  body('password').isLength({ min: 3 }),
+  body('role').isIn(['admin', 'sg', 'solicitante']),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
 
-  const roleRow = await Role.findOne({ where: { name: role } });
-  if (!roleRow) return res.status(400).json({ message: 'Rol inválido' });
+    const { name, email, password, area, role } = req.body;
+    const roleRow = await Role.findOne({ where: { name: role } });
 
-  const user = await User.create({
-    name,
-    email,
-    password: bcrypt.hashSync(password, 10),
-    area,
-    RoleId: roleRow.id
-  });
+    const user = await User.create({
+      name,
+      email,
+      password: bcrypt.hashSync(password, 10),
+      area,
+      RoleId: roleRow.id
+    });
+    res.status(201).json({ id: user.id });
+  }
+);
 
-  res.status(201).json({ id: user.id });
-});
+/* ---------- PATCH /api/users/:id  (editar datos) ---------- */
+router.patch(
+  '/:id',
+  rbac('admin'),
+  body('name').optional().notEmpty(),
+  body('email').optional().isEmail(),
+  body('area').optional(),
+  body('role').optional().isIn(['admin', 'sg', 'solicitante']),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
 
-/* ----- PATCH /api/users/:id/active  (activar / desactivar) ----- */
+    const user = await User.findByPk(req.params.id);
+    if (!user) return res.status(404).end();
+
+    // proteger al propio admin
+    if (user.id === req.auth.id && req.body.role && req.body.role !== 'admin')
+      return res.status(409).json({ message: 'No puedes cambiar tu propio rol' });
+
+    if (req.body.role) {
+      const newRole = await Role.findOne({ where: { name: req.body.role } });
+      req.body.RoleId = newRole.id;
+      delete req.body.role;
+    }
+
+    await user.update(req.body);
+    res.json(user);
+  }
+);
+
+/* ---------- PATCH /api/users/:id/active  ---------- */
 router.patch('/:id/active', rbac('admin'), async (req, res) => {
   const user = await User.findByPk(req.params.id);
   if (!user) return res.status(404).end();
+  if (user.id === req.auth.id)
+    return res.status(409).json({ message: 'No puedes desactivar tu propia cuenta' });
 
   await user.update({ active: !user.active });
-  res.json({ active: user.active });
+  res.json({ id: user.id, active: user.active });
+});
+
+/* ---------- DELETE /api/users/:id ---------- */
+router.delete('/:id', rbac('admin'), async (req, res) => {
+  const user = await User.findByPk(req.params.id);
+  if (!user) return res.status(404).end();
+  if (user.id === req.auth.id)
+    return res.status(409).json({ message: 'No puedes eliminar tu propia cuenta' });
+
+  await user.destroy();              // eliminación física
+  res.sendStatus(204);
 });
 
 module.exports = router;

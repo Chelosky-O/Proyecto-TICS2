@@ -1,6 +1,6 @@
 // frontend/src/pages/UsersAdmin.jsx
 import { useEffect, useState } from 'react';
-import { getAllUsers, createUser, toggleActive } from '../api/users';
+import { getAllUsers, createUser, toggleActive, updateUser, deleteUser } from '../api/users';
 import Select from 'react-select';
 
 const areaOpts = [
@@ -82,8 +82,34 @@ export default function UsersAdmin() {
 
   const handleEdit = (user) => {
     setSelectedUser(user);
+    // precargar campos en el mismo estado “form”
+    setForm({
+      name: user.name,
+      email: user.email,
+      area: areaOpts.find(a => a.value === user.area) || null,
+      role: roleOpts.find(r => r.value === user.Role?.name) || null
+    });
     setShowEditModal(true);
   };
+
+async function handleUpdate(e) {
+  e.preventDefault();
+  try {
+    await updateUser(selectedUser.id, {
+      name : form.name,
+      email: form.email,
+      area : form.area?.value,
+      role : form.role?.value
+    });
+    setShowEditModal(false);
+    setSelectedUser(null);
+    setForm({});
+    load();
+  } catch (err) {
+    console.error(err.response?.data || err.message);
+    alert('No se pudo actualizar el usuario');
+  }
+}
 
   const handleDelete = (user) => {
     setSelectedUser(user);
@@ -263,33 +289,110 @@ export default function UsersAdmin() {
 
       {/* Edit Modal Placeholder */}
       {showEditModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-            <div 
-              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" 
-              aria-hidden="true"
-              onClick={() => setShowEditModal(false)}
-            />
-            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div className="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-medium text-gray-900">Editar Usuario</h3>
-              </div>
-              <div className="p-6">
-                <p className="text-gray-500">Función de edición en desarrollo para: {selectedUser?.name}</p>
-              </div>
-              <div className="px-6 py-4 bg-gray-50 flex justify-end">
-                <button
-                  onClick={() => setShowEditModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                >
-                  Cerrar
-                </button>
-              </div>
-            </div>
-          </div>
+  <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+
+      {/* FONDO OSCURO */}
+      <div
+        className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+        aria-hidden="true"
+        onClick={() => { setShowEditModal(false); setForm({}); }}
+      />
+
+      {/* TRUCO CENTRADO */}
+      <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+      {/* PANEL */}
+      <div className="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+          <h3 className="text-lg font-medium text-gray-900">Editar Usuario</h3>
+          <button
+            onClick={() => { setShowEditModal(false); setForm({}); }}
+            className="text-gray-400 hover:text-gray-500 focus:outline-none"
+          >
+            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
-      )}
+
+        <form onSubmit={handleUpdate} className="p-6 space-y-6">
+          {/* Nombre */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Nombre completo</label>
+            <input
+              type="text"
+              value={form.name || ''}
+              onChange={e => setForm({ ...form, name: e.target.value })}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+              required
+            />
+          </div>
+
+          {/* Email */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Email</label>
+            <input
+              type="email"
+              value={form.email || ''}
+              onChange={e => setForm({ ...form, email: e.target.value })}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+              required
+            />
+          </div>
+
+          {/* Área */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Área</label>
+            <Select
+              options={areaOpts}
+              value={form.area}
+              onChange={area => setForm({ ...form, area })}
+              placeholder="Seleccionar área"
+              styles={customSelectStyles}
+              classNamePrefix="react-select"
+              menuPortalTarget={typeof document !== 'undefined' ? document.body : null}
+              menuPosition="fixed"
+            />
+          </div>
+
+          {/* Rol */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Rol</label>
+            <Select
+              options={roleOpts}
+              value={form.role}
+              onChange={role => setForm({ ...form, role })}
+              placeholder="Seleccionar rol"
+              styles={customSelectStyles}
+              classNamePrefix="react-select"
+              menuPortalTarget={typeof document !== 'undefined' ? document.body : null}
+              menuPosition="fixed"
+            />
+          </div>
+
+          {/* Botones */}
+          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
+            <button
+              type="button"
+              onClick={() => { setShowEditModal(false); setForm({}); }}
+              className="py-2 px-4 border border-gray-300 rounded-md text-sm text-gray-700 bg-white hover:bg-gray-50"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="py-2 px-4 rounded-md text-sm font-medium text-white bg-purple-600 hover:bg-purple-700"
+            >
+              Guardar cambios
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+)}
+
 
       {/* Delete Modal Placeholder */}
       {showDeleteModal && (
@@ -324,8 +427,12 @@ export default function UsersAdmin() {
               <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                 <button
                   onClick={() => {
-                    // Aquí iría la lógica de eliminación
+                    deleteUser(selectedUser.id)
+                    .then(() => {
                     setShowDeleteModal(false);
+                    setSelectedUser(null);
+                    load();
+                    });
                   }}
                   className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 sm:ml-3 sm:w-auto sm:text-sm"
                 >

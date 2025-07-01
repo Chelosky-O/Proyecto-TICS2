@@ -21,7 +21,7 @@ export default function Login() {
       await login(email, password);
       nav("/");
     } catch {
-      setErr("Credenciales inválidas");
+      setErr("Credenciales inválidas o Usuario inactivo");
     } finally {
       setIsLoading(false);
     }
