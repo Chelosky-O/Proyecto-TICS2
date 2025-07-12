@@ -88,7 +88,7 @@ export default function Login() {
                       clipRule="evenodd"
                     ></path>
                   </svg>
-                  <span>Gestión de solicitudes de servicios</span>
+                  <span>Gestión de tareas de servicios</span>
                 </div>
                 <div className="flex items-center">
                   <svg

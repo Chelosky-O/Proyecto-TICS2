@@ -18,19 +18,19 @@ export default function Dashboard() {
     solicitante: [
       {
         to: '/tasks',
-        label: 'Mis Solicitudes',
-        description: 'Visualiza y gestiona todas tus solicitudes activas e históricas.',
+        label: 'Mis Tareas',
+        description: 'Visualiza y gestiona todas tus tareas activas e históricas.',
         icon: 'clipboard',
         color: 'primary',
-        action: 'Ver solicitudes'
+        action: 'Ver tareas'
       },
       {
         to: '/tasks/new',
         label: 'Crear Tarea',
-        description: 'Rellena el formulario con alguna solicitud',
+        description: 'Rellena el formulario con alguna tarea',
         icon: 'plus',
         color: 'green',
-        action: 'Crear solicitud'
+        action: 'Crear tarea'
       },
     ],
     sg: [
@@ -55,7 +55,7 @@ export default function Dashboard() {
       {
         to: '/tasks/new',
         label: 'Crear Tarea',
-        description: 'Rellena el formulario con alguna solicitud.',
+        description: 'Rellena el formulario con alguna tarea.',
         icon: 'plus',
         color: 'green',
         action: 'Crear tarea'

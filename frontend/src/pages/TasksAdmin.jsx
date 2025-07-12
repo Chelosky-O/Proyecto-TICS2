@@ -1,21 +1,35 @@
 // frontend/src/pages/TasksAdmin.jsx
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { getAllTasks, updateTask, assignTask, deleteTask } from "../api/tasks";
 import { getExecutors } from "../api/users";
 import { format } from "date-fns";
+import { useNotification } from "../context/NotificationContext";
 
 export default function TasksAdmin() {
+  const location = useLocation();
+  const { showSuccess, showError } = useNotification();
   const [tasks, setTasks] = useState([]);
   const [filteredTasks, setFilteredTasks] = useState([]);
   const [filters, setFilters] = useState({
     status: "",
     type: "",
+    priority: "",
     search: "",
   });
 
+  const [appliedFilters, setAppliedFilters] = useState({
+    status: "",
+    type: "",
+    priority: "",
+    search: "",
+  });
+
+  // Estado de ordenamiento: true = más recientes primero, false = más antiguos primero
+  const [showNewestFirst, setShowNewestFirst] = useState(true);
+
   const [currentPage, setCurrentPage] = useState(1);
-  const tasksPerPage = 5; // O el número que prefieras
+  const tasksPerPage = 5;
 
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
@@ -36,9 +50,10 @@ export default function TasksAdmin() {
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
+  // Resetear página cuando cambien los filtros aplicados (no el ordenamiento)
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters]);
+  }, [appliedFilters]);
 
   // Formateador seguro antes del render
   const fmt = (d) => (d ? format(new Date(d), "dd/MM/yyyy HH:mm") : "-");
@@ -50,45 +65,81 @@ export default function TasksAdmin() {
   useEffect(() => {
     getAllTasks().then((r) => {
       setTasks(r.data);
-      setFilteredTasks(r.data);
     });
     getExecutors().then((r) => setExecutors(r.data));
   }, []);
 
-  // Filtrar tareas cuando cambien los filtros
+  // Detectar notificaciones desde URL
   useEffect(() => {
-    let filtered = tasks;
+    const params = new URLSearchParams(location.search);
+    const notification = params.get('notification');
+    
+    if (notification === 'success') {
+      showSuccess('Tarea creada exitosamente');
+      // Limpiar el parámetro de la URL inmediatamente
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [location.search, showSuccess]);
 
-    if (filters.status) {
-      filtered = filtered.filter((task) => task.status === filters.status);
+  // Filtrar y ordenar tareas cuando cambien los filtros aplicados o el ordenamiento
+  useEffect(() => {
+    if (tasks.length === 0) return;
+    
+    let filtered = [...tasks]; // Crear una copia para evitar mutaciones
+
+    // Aplicar filtros
+    if (appliedFilters.status) {
+      filtered = filtered.filter((task) => task.status === appliedFilters.status);
     }
 
-    if (filters.type) {
-      filtered = filtered.filter((task) => task.type === filters.type);
+    if (appliedFilters.type) {
+      filtered = filtered.filter((task) => task.type === appliedFilters.type);
     }
 
-    if (filters.search) {
+    if (appliedFilters.priority) {
+      filtered = filtered.filter((task) => task.priority === appliedFilters.priority);
+    }
+
+    if (appliedFilters.search) {
       filtered = filtered.filter(
         (task) =>
-          task.title.toLowerCase().includes(filters.search.toLowerCase()) ||
+          task.title.toLowerCase().includes(appliedFilters.search.toLowerCase()) ||
           task.author?.name
             ?.toLowerCase()
-            .includes(filters.search.toLowerCase()) ||
+            .includes(appliedFilters.search.toLowerCase()) ||
           task.executor?.name
             ?.toLowerCase()
-            .includes(filters.search.toLowerCase())
+            .includes(appliedFilters.search.toLowerCase())
       );
     }
 
+    // Aplicar ordenamiento por fecha de creación
+    filtered.sort((a, b) => {
+      const aValue = new Date(a.requestedAt).getTime();
+      const bValue = new Date(b.requestedAt).getTime();
+
+      if (showNewestFirst) {
+        return bValue - aValue; // Más recientes primero
+      } else {
+        return aValue - bValue; // Más antiguos primero
+      }
+    });
+
     setFilteredTasks(filtered);
-  }, [filters, tasks]);
+  }, [appliedFilters, showNewestFirst, tasks]);
+
+  // Función para limpiar filtros (sin afectar el ordenamiento)
+  const clearFilters = () => {
+    setFilters({ status: "", type: "", priority: "", search: "" });
+    setAppliedFilters({ status: "", type: "", priority: "", search: "" });
+    // No resetear el sortDirection aquí para mantener el ordenamiento actual
+  };
 
   // Calcular estadísticas
   const stats = {
-    pendientes: tasks.filter((t) => t.status === "pendiente").length,
-    asignadas: tasks.filter((t) => t.status === "asignada").length,
-    enProgreso: tasks.filter((t) => t.status === "en-progreso").length,
-    completadas: tasks.filter((t) => t.status === "completada").length,
+    pendientes: tasks.filter((t) => t.status === "Pendiente").length,
+    enProgreso: tasks.filter((t) => t.status === "En Progreso").length,
+    finalizadas: tasks.filter((t) => t.status === "Finalizada").length,
   };
 
   // Obtener clase CSS para el estado
@@ -187,41 +238,153 @@ export default function TasksAdmin() {
         </div>
       </div>
 
+      {/* Filtros y Ordenamiento */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Búsqueda */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Buscador (título, solicitante, ejecutor)
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={filters.search}
+                onChange={(e) =>
+                  setFilters({ ...filters, search: e.target.value })
+                }
+                placeholder="Buscar..."
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm transition-colors duration-200"
+              />
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg
+                  className="h-5 w-5 text-gray-400"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          {/* Filtro por Estado */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Estado
+            </label>
+            <select
+              value={filters.status}
+              onChange={(e) =>
+                setFilters({ ...filters, status: e.target.value })
+              }
+              className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-700 focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm transition-colors duration-200"
+            >
+              <option value="">Todos los estados</option>
+              <option value="Pendiente">Pendiente</option>
+              <option value="En Progreso">En Progreso</option>
+              <option value="Finalizada">Finalizada</option>
+            </select>
+          </div>
+
+          {/* Filtro por Tipo */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Tipo de Tarea
+            </label>
+            <select
+              value={filters.type}
+              onChange={(e) =>
+                setFilters({ ...filters, type: e.target.value })
+              }
+              className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-700 focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm transition-colors duration-200"
+            >
+              <option value="">Todos los tipos</option>
+              <option value="Retiro">Retiro</option>
+              <option value="Traslados">Traslados</option>
+              <option value="Compras">Compras</option>
+              <option value="Varios">Varios</option>
+            </select>
+          </div>
+
+          {/* Filtro por Prioridad */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Prioridad
+            </label>
+            <select
+              value={filters.priority}
+              onChange={(e) =>
+                setFilters({ ...filters, priority: e.target.value })
+              }
+              className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-700 focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm transition-colors duration-200"
+            >
+              <option value="">Todas las prioridades</option>
+              <option value="Alta">Alta</option>
+              <option value="Media">Media</option>
+              <option value="Baja">Baja</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Botones */}
+        <div className="mt-4">
+          <div className="flex justify-end">
+            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+              <button
+                onClick={() => {
+                  setAppliedFilters({ ...filters });
+                }}
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-violet-600 hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 transition-colors duration-200"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z" />
+                </svg>
+                Aplicar Filtros
+              </button>
+
+              <button
+                onClick={clearFilters}
+                className="inline-flex items-center px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-all duration-200 font-medium text-sm border border-red-700 shadow"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Limpiar Filtros
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Tasks Table Section */}
       <div>
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden shadow-lg">
-          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex flex-col lg:flex-row lg:justify-between lg:items-center space-y-4 lg:space-y-0">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-              Lista Completa de Tareas
-            </h3>
-            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-              {/* Search */}
-              <div className="relative">
-                <input
-                  type="text"
-                  value={filters.search}
-                  onChange={(e) =>
-                    setFilters({ ...filters, search: e.target.value })
-                  }
-                  placeholder="Buscar tareas..."
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm transition-colors duration-200"
-                />
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg
-                    className="h-5 w-5 text-gray-400"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                Lista Completa de Tareas ({filteredTasks.length} tareas)
+              </h3>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  Orden: {showNewestFirst ? "Creadas recientes primero" : "Creadas antiguas primero"}
+                </span>
+                <button
+                  onClick={() => setShowNewestFirst(!showNewestFirst)}
+                  className="inline-flex items-center px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 transition-colors duration-200"
+                  title="Cambiar orden"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
                   </svg>
-                </div>
+                </button>
               </div>
             </div>
           </div>
@@ -263,7 +426,7 @@ export default function TasksAdmin() {
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
                   >
                     Acciones
                   </th>
@@ -377,7 +540,7 @@ export default function TasksAdmin() {
                         {task.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <td className="px-6 py-4 whitespace-nowrap text-left text-sm font-medium">
                       <Link
                         to="#"
                         className="text-violet-600 hover:text-violet-900 dark:text-violet-400 dark:hover:text-violet-300 mr-3"
@@ -389,36 +552,27 @@ export default function TasksAdmin() {
                       >
                         Ver
                       </Link>
-                      {task.status === "pendiente" ? (
-                        <Link
-                          to={`/assign/${task.id}`}
-                          className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300"
-                        >
-                          Asignar
-                        </Link>
-                      ) : (
-                        <Link
-                          to="#"
-                          className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300"
-                          onClick={e => {
-                            e.preventDefault();
-                            setSelectedTask(task);
-                            setEditForm({
-                              title: task.title || '',
-                              description: task.description || '',
-                              location: task.location || '',
-                              type: task.type || '',
-                              priority: task.priority || '',
-                              dueAt: task.dueAt ? new Date(task.dueAt).toISOString().slice(0, 16) : '',
-                              executorId: task.executor?.id || ''
-                            });
-                            setEditErrors({});
-                            setShowEditModal(true);
-                          }}
-                        >
-                          Editar
-                        </Link>
-                      )}
+                      <Link
+                        to="#"
+                        className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300"
+                        onClick={e => {
+                          e.preventDefault();
+                          setSelectedTask(task);
+                          setEditForm({
+                            title: task.title || '',
+                            description: task.description || '',
+                            location: task.location || '',
+                            type: task.type || '',
+                            priority: task.priority || '',
+                            dueAt: task.dueAt ? new Date(task.dueAt).toISOString().slice(0, 16) : '',
+                            executorId: task.executor?.id || ''
+                          });
+                          setEditErrors({});
+                          setShowEditModal(true);
+                        }}
+                      >
+                        Editar
+                      </Link>
                       <button
                         onClick={() => {
                           setTaskToDelete(task);
@@ -522,36 +676,27 @@ export default function TasksAdmin() {
                   >
                     Ver
                   </Link>
-                  {task.status === "pendiente" ? (
-                    <Link
-                      to={`/assign/${task.id}`}
-                      className="text-gray-600 hover:text-gray-900 text-sm font-medium"
-                    >
-                      Asignar
-                    </Link>
-                  ) : (
-                    <Link
-                      to="#"
-                      className="text-gray-600 hover:text-gray-900 text-sm font-medium"
-                      onClick={e => {
-                        e.preventDefault();
-                        setSelectedTask(task);
-                        setEditForm({
-                          title: task.title || '',
-                          description: task.description || '',
-                          location: task.location || '',
-                          type: task.type || '',
-                          priority: task.priority || '',
-                          dueAt: task.dueAt ? new Date(task.dueAt).toISOString().slice(0, 16) : '',
-                          executorId: task.executor?.id || ''
-                        });
-                        setEditErrors({});
-                        setShowEditModal(true);
-                      }}
-                    >
-                      Editar
-                    </Link>
-                  )}
+                  <Link
+                    to="#"
+                    className="text-gray-600 hover:text-gray-900 text-sm font-medium"
+                    onClick={e => {
+                      e.preventDefault();
+                      setSelectedTask(task);
+                      setEditForm({
+                        title: task.title || '',
+                        description: task.description || '',
+                        location: task.location || '',
+                        type: task.type || '',
+                        priority: task.priority || '',
+                        dueAt: task.dueAt ? new Date(task.dueAt).toISOString().slice(0, 16) : '',
+                        executorId: task.executor?.id || ''
+                      });
+                      setEditErrors({});
+                      setShowEditModal(true);
+                    }}
+                  >
+                    Editar
+                  </Link>
                 </div>
               </div>
             ))}
@@ -765,6 +910,8 @@ export default function TasksAdmin() {
                       await assignTask(selectedTask.id, editForm.executorId);
                     }
                     setShowEditModal(false);
+                    // Mostrar notificación de éxito
+                    showSuccess('Tarea actualizada exitosamente');
                     // Recargar tareas
                     getAllTasks().then((r) => {
                       setTasks(r.data);
@@ -777,6 +924,8 @@ export default function TasksAdmin() {
                     } else if (err.response && err.response.data && err.response.data.message) {
                       msg = err.response.data.message;
                     }
+                    // Mostrar notificación de error
+                    showError(msg);
                     setEditErrors({ submit: msg });
                     console.error('Error al guardar tarea:', err);
                   } finally {
@@ -977,14 +1126,22 @@ export default function TasksAdmin() {
               <div className="bg-gray-50 dark:bg-gray-900 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                 <button
                   onClick={async () => {
-                    await deleteTask(taskToDelete.id);
-                    setShowDeleteModal(false);
-                    setTaskToDelete(null);
-                    // Recargar tareas
-                    getAllTasks().then((r) => {
-                      setTasks(r.data);
-                      setFilteredTasks(r.data);
-                    });
+                    try {
+                      await deleteTask(taskToDelete.id);
+                      setShowDeleteModal(false);
+                      setTaskToDelete(null);
+                      // Mostrar notificación de éxito
+                      showSuccess(`Tarea "${taskToDelete.title}" eliminada exitosamente`);
+                      // Recargar tareas
+                      getAllTasks().then((r) => {
+                        setTasks(r.data);
+                        setFilteredTasks(r.data);
+                      });
+                    } catch (error) {
+                      console.error('Error eliminando tarea:', error);
+                      // Mostrar notificación de error
+                      showError('Error al eliminar la tarea. Inténtalo de nuevo.');
+                    }
                   }}
                   className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 sm:ml-3 sm:w-auto sm:text-sm"
                 >

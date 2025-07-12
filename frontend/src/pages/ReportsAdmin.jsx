@@ -2,13 +2,19 @@
 import { useEffect, useState } from 'react';
 import DatePicker from 'react-datepicker';
 import { getSummary, getByArea, getByType } from '../api/reports';
+import { useNotification } from '../context/NotificationContext';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, ResponsiveContainer,
   LineChart, Line, CartesianGrid, Legend
 } from 'recharts';
 import { addDays, startOfWeek, endOfWeek } from 'date-fns';
+import { registerLocale } from 'react-datepicker';
+import es from 'date-fns/locale/es';
 
 import 'react-datepicker/dist/react-datepicker.css';
+
+// Registrar la localización española
+registerLocale('es', es);
 
 const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];
 const donutColors = ['#8B5CF6', '#D946EF', '#06B6D4', '#10B981'];
@@ -23,6 +29,8 @@ const AREAS = [
 ];
 
 export default function ReportsAdmin() {
+  const { showSuccess, showError } = useNotification();
+  
   // Calcular la semana actual al cargar la página
   const today = new Date();
   const initialFrom = startOfWeek(today, { weekStartsOn: 1 }); // Lunes
@@ -33,6 +41,7 @@ export default function ReportsAdmin() {
   const [summary, setSummary] = useState({});
   const [areaData, setArea] = useState([]);
   const [typeData, setType] = useState([]);
+
   
   const load = () => {
     const params = { from: from?.toISOString().slice(0,10), to: to?.toISOString().slice(0,10) };
@@ -47,6 +56,8 @@ export default function ReportsAdmin() {
     });
     getByType(params).then(r => setType(r.data));
   };
+
+
 
   useEffect(() => {
     load();
@@ -77,7 +88,8 @@ export default function ReportsAdmin() {
                     selected={from}
                     onChange={setFrom}
                     placeholderText="Seleccionar fecha"
-                    dateFormat="yyyy-MM-dd"
+                    dateFormat="dd/MM/yyyy"
+                    locale="es"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
@@ -87,14 +99,15 @@ export default function ReportsAdmin() {
                     selected={to}
                     onChange={setTo}
                     placeholderText="Seleccionar fecha"
-                    dateFormat="yyyy-MM-dd"
+                    dateFormat="dd/MM/yyyy"
+                    locale="es"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
                 <div className="flex items-end">
                   <button
                     onClick={load}
-                    className="w-full px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-medium hover:shadow-lg transition-all duration-200"
+                    className="w-full px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg font-medium hover:shadow-lg transition-all duration-200"
                   >
                     <div className="flex items-center justify-center space-x-2">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -114,8 +127,8 @@ export default function ReportsAdmin() {
             <div className="bg-white rounded-2xl shadow-sm p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                    <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                     </svg>
                   </div>
@@ -138,7 +151,7 @@ export default function ReportsAdmin() {
                   </div>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Tareas Completadas</p>
+                  <p className="text-sm font-medium text-gray-600">Tareas Finalizadas</p>
                   <p className="text-2xl font-bold text-gray-900">{summary.completed ?? '0'}</p>
                 </div>
               </div>
@@ -148,9 +161,9 @@ export default function ReportsAdmin() {
             <div className="bg-white rounded-2xl shadow-sm p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
-                    <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
+                    <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                   </div>
                 </div>
@@ -165,9 +178,9 @@ export default function ReportsAdmin() {
             <div className="bg-white rounded-2xl shadow-sm p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <div className="w-12 h-12 bg-yellow-200 rounded-xl flex items-center justify-center">
-                    <svg className="w-6 h-6 text-yellow-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
                   </div>
                 </div>
@@ -182,8 +195,8 @@ export default function ReportsAdmin() {
             <div className="bg-white rounded-2xl shadow-sm p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                    <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
+                    <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                     </svg>
                   </div>

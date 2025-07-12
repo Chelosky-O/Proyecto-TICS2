@@ -7,6 +7,7 @@ import {
   updateUser,
   deleteUser,
 } from "../api/users";
+import { useNotification } from "../context/NotificationContext";
 import Select from "react-select";
 
 const areaOpts = [
@@ -14,7 +15,6 @@ const areaOpts = [
   { value: "Laboratorio", label: "Laboratorio" },
   { value: "Gerencia", label: "Gerencia" },
   { value: "Finanzas", label: "Finanzas" },
-  { value: "Servicios Generales", label: "Servicios Generales" },
   { value: "UTM", label: "UTM" },
 ];
 
@@ -66,9 +66,20 @@ const customSelectStyles = {
 };
 
 export default function UsersAdmin() {
+  const { showSuccess, showError } = useNotification();
   const [users, setUsers] = useState([]);
   const [form, setForm] = useState({});
-  const [searchTerm, setSearchTerm] = useState("");
+  // ESTADOS DE FILTRO
+  const [filterNameEmail, setFilterNameEmail] = useState("");
+  const [filterArea, setFilterArea] = useState(null);
+  const [filterRole, setFilterRole] = useState(null);
+  const [appliedFilters, setAppliedFilters] = useState({
+    nameEmail: "",
+    area: null,
+    role: null,
+  });
+  // Estado de ordenamiento: true = más recientes primero, false = más antiguos primero
+  const [showNewestFirst, setShowNewestFirst] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -84,16 +95,21 @@ export default function UsersAdmin() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    await createUser({
-      name: form.name,
-      email: form.email,
-      password: form.password,
-      area: form.area?.value,
-      role: form.role?.value,
-    });
-    setForm({});
-    setShowCreateModal(false);
-    load();
+    try {
+      await createUser({
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        area: form.area?.value,
+        role: form.role?.value,
+      });
+      setForm({});
+      setShowCreateModal(false);
+      load();
+      showSuccess("Usuario creado exitosamente");
+    } catch (err) {
+      showError("No se pudo crear el usuario");
+    }
   }
 
   const handleEdit = (user) => {
@@ -121,9 +137,9 @@ export default function UsersAdmin() {
       setSelectedUser(null);
       setForm({});
       load();
+      showSuccess("Usuario actualizado exitosamente");
     } catch (err) {
-      console.error(err.response?.data || err.message);
-      alert("No se pudo actualizar el usuario");
+      showError("No se pudo actualizar el usuario");
     }
   }
 
@@ -132,14 +148,33 @@ export default function UsersAdmin() {
     setShowDeleteModal(true);
   };
 
+  // LÓGICA DE FILTRADO
   const filteredUsers = users
-    .filter(
-      (user) =>
-        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.area.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) => b.id - a.id);
+    .filter((user) => {
+      // Filtro por nombre/email
+      const nameEmailMatch =
+        !appliedFilters.nameEmail ||
+        user.name.toLowerCase().includes(appliedFilters.nameEmail.toLowerCase()) ||
+        user.email.toLowerCase().includes(appliedFilters.nameEmail.toLowerCase());
+      
+      // Filtro por área
+      const areaMatch =
+        !appliedFilters.area || user.area === appliedFilters.area.value;
+      
+      // Filtro por rol
+      const roleMatch =
+        !appliedFilters.role || (user.Role && user.Role.name === appliedFilters.role.value);
+      
+      return nameEmailMatch && areaMatch && roleMatch;
+    })
+    .sort((a, b) => {
+      // Ordenar por ID (fecha de creación)
+      if (showNewestFirst) {
+        return b.id - a.id; // Más recientes primero
+      } else {
+        return a.id - b.id; // Más antiguos primero
+      }
+    });
 
   // Lógica de paginación
   const indexOfLastUser = currentPage * usersPerPage;
@@ -150,10 +185,10 @@ export default function UsersAdmin() {
   // Cambiar página
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
-  // Resetear página cuando cambia la búsqueda
+  // Resetear página cuando cambien los filtros aplicados o el ordenamiento
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm]);
+  }, [appliedFilters, showNewestFirst]);
 
   const getRoleBadgeClasses = (role) => {
     switch (role.toLowerCase()) {
@@ -198,7 +233,7 @@ export default function UsersAdmin() {
             <div className="mt-4 md:mt-0">
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-violet-600 hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500"
               >
                 <svg
                   className="-ml-1 mr-2 h-5 w-5"
@@ -220,38 +255,136 @@ export default function UsersAdmin() {
           </div>
         </div>
 
+        {/* FILTROS */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Buscador por nombre/email */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Buscador (nombre, email)
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={filterNameEmail}
+                  onChange={(e) => setFilterNameEmail(e.target.value)}
+                  placeholder="Buscar..."
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm transition-colors duration-200"
+                />
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg
+                    className="h-5 w-5 text-gray-400"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            {/* Filtro por área */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Área
+              </label>
+              <select
+                value={filterArea ? filterArea.value : ""}
+                onChange={e => {
+                  const val = e.target.value;
+                  setFilterArea(val ? areaOpts.find(a => a.value === val) : null);
+                }}
+                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-700 focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm transition-colors duration-200"
+              >
+                <option value="">Todas las áreas</option>
+                {areaOpts.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+            {/* Filtro por rol */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Rol
+              </label>
+              <select
+                value={filterRole ? filterRole.value : ""}
+                onChange={e => {
+                  const val = e.target.value;
+                  setFilterRole(val ? roleOpts.find(r => r.value === val) : null);
+                }}
+                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-700 focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm transition-colors duration-200"
+              >
+                <option value="">Todos los roles</option>
+                {roleOpts.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          {/* Botones */}
+          <div className="mt-4">
+            <div className="flex justify-end">
+              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                <button
+                  onClick={() => setAppliedFilters({
+                    nameEmail: filterNameEmail,
+                    area: filterArea,
+                    role: filterRole,
+                  })}
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-violet-600 hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 transition-colors duration-200"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z" />
+                  </svg>
+                  Aplicar filtros
+                </button>
+                <button
+                  onClick={() => {
+                    setFilterNameEmail("");
+                    setFilterArea(null);
+                    setFilterRole(null);
+                    setAppliedFilters({ nameEmail: "", area: null, role: null });
+                  }}
+                  className="inline-flex items-center px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-all duration-200 font-medium text-sm border border-red-700 shadow"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Limpiar filtros
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="space-y-8">
           {/* Users Table Section */}
           <div>
             <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
                 <h3 className="text-lg font-medium text-gray-900">
-                  Lista de Usuarios
+                  Lista de Usuarios ({filteredUsers.length} usuarios)
                 </h3>
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Buscar usuarios..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
-                  />
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg
-                      className="h-5 w-5 text-gray-400"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                      />
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-600">
+                    Orden: {showNewestFirst ? "Agregados recientemente primero" : "Agregados antiguamente primero"}
+                  </span>
+                  <button
+                    onClick={() => setShowNewestFirst(!showNewestFirst)}
+                    className="inline-flex items-center px-2 py-1 border border-gray-300 rounded text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 transition-colors duration-200"
+                    title="Cambiar orden"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
                     </svg>
-                  </div>
+                  </button>
                 </div>
               </div>
               <div className="overflow-x-auto">
@@ -284,7 +417,7 @@ export default function UsersAdmin() {
                       </th>
                       <th
                         scope="col"
-                        className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                       >
                         Acciones
                       </th>
@@ -342,7 +475,12 @@ export default function UsersAdmin() {
                                 type="checkbox"
                                 checked={user.active}
                                 onChange={() =>
-                                  toggleActive(user.id).then(load)
+                                  toggleActive(user.id).then(() => {
+                                    load();
+                                    showSuccess(`Usuario ${user.active ? 'desactivado' : 'activado'} exitosamente`);
+                                  }).catch(() => {
+                                    showError("No se pudo cambiar el estado del usuario");
+                                  })
                                 }
                                 className="sr-only peer"
                               />
@@ -357,7 +495,7 @@ export default function UsersAdmin() {
                             </span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <td className="px-6 py-4 whitespace-nowrap text-left text-sm font-medium">
                           <button
                             onClick={() => handleEdit(user)}
                             className="text-purple-600 hover:text-purple-900 mr-3"
@@ -376,11 +514,18 @@ export default function UsersAdmin() {
                   </tbody>
                 </table>
               </div>
+
+              {filteredUsers.length === 0 && (
+                <div className="p-6 text-center text-gray-500">
+                  No hay usuarios que coincidan con los filtros seleccionados.
+                </div>
+              )}
+
               <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-gray-700">
                     Mostrando{" "}
-                    <span className="font-medium">{indexOfFirstUser + 1}</span>{" "}
+                    <span className="font-medium">{filteredUsers.length === 0 ? 0 : indexOfFirstUser + 1}</span>{" "}
                     a{" "}
                     <span className="font-medium">
                       {Math.min(indexOfLastUser, filteredUsers.length)}
@@ -636,6 +781,7 @@ export default function UsersAdmin() {
                       setShowDeleteModal(false);
                       setSelectedUser(null);
                       load();
+                      showSuccess("Usuario eliminado exitosamente");
                     });
                   }}
                   className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 sm:ml-3 sm:w-auto sm:text-sm"

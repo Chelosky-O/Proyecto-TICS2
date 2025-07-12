@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
+import { NotificationProvider } from './context/NotificationContext';
 import ProtectedRoute     from './auth/ProtectedRoute';
 import ProtectedLayout    from './layout/ProtectedLayout';
 
@@ -16,7 +17,8 @@ import ReportsAdmin     from './pages/ReportsAdmin';
 export default function App() {
   return (
     <AuthProvider>
-      <Routes>
+      <NotificationProvider>
+        <Routes>
         <Route path="/login" element={<Login />} />
 
         {/* --- Rutas protegidas --- */}
@@ -48,6 +50,7 @@ export default function App() {
 
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
+      </NotificationProvider>
     </AuthProvider>
   );
 }

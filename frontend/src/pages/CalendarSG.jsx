@@ -4,6 +4,7 @@ import es from 'date-fns/locale/es';
 
 import { useAuth } from '../auth/AuthContext';
 import { getAssignedTasks, getAllTasks, changeStatus } from '../api/tasks';
+import { useNotification } from '../context/NotificationContext';
 
 // Función para formatear fecha
 const formatDate = (dateString) => {
@@ -56,9 +57,21 @@ const getEventClass = (status) => `${getStatusClass(status)} ${getEventBorderCla
 
 export default function CalendarSG() {
   const { user } = useAuth();
+  const { showSuccess, showError } = useNotification();
   const [tasks, setTasks] = useState([]);
-  const [taskFilter, setTaskFilter] = useState('');
-  const [taskSearch, setTaskSearch] = useState('');
+  // Filtros para el panel derecho
+  const [filters, setFilters] = useState({
+    status: '',
+    type: '',
+    priority: '',
+    search: '',
+  });
+  const [appliedFilters, setAppliedFilters] = useState({
+    status: '',
+    type: '',
+    priority: '',
+    search: '',
+  });
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
@@ -72,9 +85,22 @@ export default function CalendarSG() {
   // Modal de confirmación para cambiar estado
   function handleStatus(task, nextStatus) {
     setConfirmModal({ show: true, task, nextStatus, action: async () => {
-      await changeStatus(task.id, nextStatus);
-      setTasks(s => s.map(k => k.id === task.id ? { ...k, status: nextStatus } : k));
-      setConfirmModal({ show: false, task: null, nextStatus: '', action: null });
+      try {
+        await changeStatus(task.id, nextStatus);
+        setTasks(s => s.map(k => k.id === task.id ? { ...k, status: nextStatus } : k));
+        setConfirmModal({ show: false, task: null, nextStatus: '', action: null });
+        
+        // Mostrar notificación de éxito
+        const statusMessages = {
+          'En Progreso': 'Estado de tarea cambiado a "En Progreso"',
+          'Finalizada': 'Estado de tarea cambiado a "Finalizada"'
+        };
+        showSuccess(statusMessages[nextStatus] || `Estado de tarea cambiado a "${nextStatus}"`);
+      } catch (error) {
+        console.error('Error al cambiar estado:', error);
+        showError('Error al cambiar el estado de la tarea');
+        setConfirmModal({ show: false, task: null, nextStatus: '', action: null });
+      }
     }});
   }
   function closeConfirmModal() {
@@ -90,16 +116,39 @@ export default function CalendarSG() {
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1, locale: es });
   const weekEnd = endOfWeek(currentWeek, { weekStartsOn: 1, locale: es });
 
-  // Filtros
+  // Filtros (adaptados de TaskAdmin, solo por título, tipo y prioridad)
   const filteredTasks = tasks.filter(task => {
-    const statusMatch = !taskFilter || task.status.toLowerCase().replace(' ', '-') === taskFilter;
-    const searchMatch = !taskSearch || task.title.toLowerCase().includes(taskSearch.toLowerCase());
     // Solo tareas de la semana actual
     if (!task.dueAt) return false;
     const taskDate = typeof task.dueAt === 'string' ? parseISO(task.dueAt) : new Date(task.dueAt);
     const inWeek = isWithinInterval(taskDate, { start: weekStart, end: weekEnd });
-    return statusMatch && searchMatch && inWeek;
+    if (!inWeek) return false;
+    // Filtro por estado
+    if (appliedFilters.status && task.status !== appliedFilters.status) return false;
+    // Buscador solo por título
+    if (appliedFilters.search && !task.title.toLowerCase().includes(appliedFilters.search.toLowerCase())) return false;
+    // Filtro por tipo
+    if (appliedFilters.type && task.type !== appliedFilters.type) return false;
+    // Filtro por prioridad
+    if (appliedFilters.priority && task.priority !== appliedFilters.priority) return false;
+    return true;
   });
+
+  // Obtener todas las tareas de la semana (sin filtros aplicados)
+  const weekTasks = tasks.filter(task => {
+    if (!task.dueAt) return false;
+    const taskDate = typeof task.dueAt === 'string' ? parseISO(task.dueAt) : new Date(task.dueAt);
+    return isWithinInterval(taskDate, { start: weekStart, end: weekEnd });
+  });
+
+  // Verificar si hay filtros activos
+  const hasActiveFilters = appliedFilters.status || appliedFilters.search || appliedFilters.type || appliedFilters.priority;
+
+  // Limpiar filtros
+  const clearFilters = () => {
+    setFilters({ status: '', type: '', priority: '', search: '' });
+    setAppliedFilters({ status: '', type: '', priority: '', search: '' });
+  };
 
   // Días y horas de la semana
   const weekDays = [
@@ -243,77 +292,145 @@ export default function CalendarSG() {
               </div>
               {/* Task Filters */}
               <div className="px-6 py-3 border-b border-gray-200 space-y-3">
-                <select 
-                  value={taskFilter}
-                  onChange={(e) => setTaskFilter(e.target.value)}
-                  className="block w-full text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 p-2"
-                >
-                  <option value="">Todos los estados</option>
-                  <option value="pendiente">Pendiente</option>
-                  <option value="en-progreso">En Progreso</option>
-                  <option value="finalizada">Finalizada</option>
-                </select>
-                <input 
-                  type="text" 
-                  placeholder="Buscar tareas..." 
-                  value={taskSearch}
-                  onChange={(e) => setTaskSearch(e.target.value)}
-                  className="block w-full text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 p-2"
-                />
+                 {/* Buscador solo por título */}
+                 <input
+                   type="text"
+                   placeholder="Buscar por título..."
+                   value={filters.search}
+                   onChange={e => setFilters({ ...filters, search: e.target.value })}
+                   className="block w-full text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 p-2"
+                 />
+                 {/* Filtro por estado */}
+                 <select
+                   value={filters.status}
+                   onChange={e => setFilters({ ...filters, status: e.target.value })}
+                   className="block w-full text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 p-2"
+                 >
+                   <option value="">Todos los estados</option>
+                   <option value="Pendiente">Pendiente</option>
+                   <option value="En Progreso">En Progreso</option>
+                   <option value="Finalizada">Finalizada</option>
+                 </select>
+                 {/* Filtro por tipo */}
+                 <select
+                   value={filters.type}
+                   onChange={e => setFilters({ ...filters, type: e.target.value })}
+                   className="block w-full text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 p-2"
+                 >
+                   <option value="">Todos los tipos</option>
+                   <option value="Retiro">Retiro</option>
+                   <option value="Traslados">Traslados</option>
+                   <option value="Compras">Compras</option>
+                   <option value="Varios">Varios</option>
+                 </select>
+                 {/* Filtro por prioridad */}
+                 <select
+                   value={filters.priority}
+                   onChange={e => setFilters({ ...filters, priority: e.target.value })}
+                   className="block w-full text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 p-2"
+                 >
+                   <option value="">Todas las prioridades</option>
+                   <option value="Alta">Alta</option>
+                   <option value="Media">Media</option>
+                   <option value="Baja">Baja</option>
+                 </select>
+                {/* Botones */}
+                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 pt-2">
+                  <button
+                    onClick={() => setAppliedFilters({ ...filters })}
+                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-violet-600 hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 transition-colors duration-200"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z" />
+                    </svg>
+                    Aplicar Filtros
+                  </button>
+                  <button
+                    onClick={clearFilters}
+                    className="inline-flex items-center px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-all duration-200 font-medium text-sm border border-red-700 shadow"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Limpiar Filtros
+                  </button>
+                </div>
               </div>
               {/* Task List */}
               <div className="max-h-96 overflow-y-auto">
-                {filteredTasks.map(t => (
-                  <div key={t.id} className="p-4 border-b border-gray-200 hover:bg-gray-50 transition-colors">
-                    <div className="space-y-3">
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-900">{t.title}</h4>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {formatDate(t.dueAt)} — Área: {t.author?.area}
-                        </p>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusClass(t.status)}`}>{t.status}</span>
-                        <div className="flex flex-col gap-1">
-                          <button
-                            onClick={() => openDetail(t)}
-                            className="text-xs text-violet-600 hover:text-violet-900 font-medium px-2 py-1 bg-violet-50 rounded mb-1"
-                          >
-                            Ver
-                          </button>
-                          {user.role === 'sg' && (
-                            <>
-                              {t.status === 'Pendiente' && (
-                                <>
-                                  <button 
-                                    onClick={() => handleStatus(t, 'En Progreso')}
-                                    className="text-xs text-purple-600 hover:text-purple-700 font-medium px-2 py-1 bg-purple-50 rounded"
-                                  >
-                                    ▶ Iniciar
-                                  </button>
+                {weekTasks.length === 0 ? (
+                  // No mostrar nada cuando no hay tareas en la semana
+                  null
+                ) : filteredTasks.length === 0 && hasActiveFilters ? (
+                  // Solo mostrar mensaje cuando hay filtros activos y no hay resultados
+                  <div className="p-6 text-center text-gray-500">
+                    No hay tareas que coincidan con los filtros seleccionados.
+                  </div>
+                ) : (
+                  filteredTasks.map(t => (
+                    <div key={t.id} className="p-4 border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                      <div className="space-y-3">
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-900">
+                            {t.title}
+                          </h4>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {formatDate(t.dueAt)} — Área: {t.author?.area}
+                          </p>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex gap-1 items-center">
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusClass(t.status)}`}>{t.status}</span>
+                            {/* Tag de tipo */}
+                            {t.type && (
+                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${getServiceClass(t.type)}`}>{t.type}</span>
+                            )}
+                            {/* Tag de prioridad */}
+                            {t.priority && (
+                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPriorityClass(t.priority)}`}>{t.priority}</span>
+                            )}
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <button
+                              onClick={() => openDetail(t)}
+                              className="text-xs text-violet-600 hover:text-violet-900 font-medium px-2 py-1 bg-violet-50 rounded mb-1"
+                            >
+                              Ver
+                            </button>
+                            {user.role === 'sg' && (
+                              <>
+                                {t.status === 'Pendiente' && (
+                                  <>
+                                    <button 
+                                      onClick={() => handleStatus(t, 'En Progreso')}
+                                      className="text-xs text-purple-600 hover:text-purple-700 font-medium px-2 py-1 bg-purple-50 rounded"
+                                    >
+                                      ▶ Iniciar
+                                    </button>
+                                    <button 
+                                      onClick={() => handleStatus(t, 'Finalizada')}
+                                      className="text-xs text-green-600 hover:text-green-700 font-medium px-2 py-1 bg-green-50 rounded"
+                                    >
+                                      ✓ Finalizar
+                                    </button>
+                                  </>
+                                )}
+                                {t.status === 'En Progreso' && (
                                   <button 
                                     onClick={() => handleStatus(t, 'Finalizada')}
                                     className="text-xs text-green-600 hover:text-green-700 font-medium px-2 py-1 bg-green-50 rounded"
                                   >
                                     ✓ Finalizar
                                   </button>
-                                </>
-                              )}
-                              {t.status === 'En Progreso' && (
-                                <button 
-                                  onClick={() => handleStatus(t, 'Finalizada')}
-                                  className="text-xs text-green-600 hover:text-green-700 font-medium px-2 py-1 bg-green-50 rounded"
-                                >
-                                  ✓ Finalizar
-                                </button>
-                              )}
-                            </>
-                          )}
+                                )}
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           </div>

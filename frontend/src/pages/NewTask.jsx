@@ -3,10 +3,12 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createTask } from '../api/tasks';
 import { useAuth } from '../auth/AuthContext';
+import { useNotification } from '../context/NotificationContext';
 
 export default function NewTask() {
   const nav = useNavigate();
   const { user } = useAuth();
+  const { showSuccess, showError } = useNotification();
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -128,12 +130,13 @@ export default function NewTask() {
         
         // Redirect to tasks list on success based on user role
         if (user?.role === 'admin') {
-          nav('/tasks-admin'); // Redirect to TaskAdmin if admin
+          nav('/tasks-admin?notification=success'); // Redirect to TaskAdmin if admin
         } else {
-          nav('/tasks'); // Redirect to TaskList for other users
+          nav('/tasks?notification=success'); // Redirect to TaskList for other users
         }
       } catch (error) {
         console.error('Error al guardar:', error);
+        showError('Error al crear la tarea. Revisa los campos.');
         setErrors({ submit: 'Error al guardar. Revisa los campos.' });
         setIsSubmitting(false);
       }
@@ -152,16 +155,16 @@ export default function NewTask() {
       {/* Page Header */}
       <div className="mb-8">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900">Nueva Solicitud</h2>
-          <p className="mt-2 text-lg text-gray-600">Crea una nueva solicitud de servicio</p>
+          <h2 className="text-3xl font-bold text-gray-900">Nueva Tarea</h2>
+          <p className="mt-2 text-lg text-gray-600">Crea una nueva tarea de servicio</p>
         </div>
       </div>
 
       {/* Request Form */}
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Información de la Solicitud</h3>
-          <p className="mt-1 text-sm text-gray-500">Completa todos los campos para crear tu solicitud</p>
+          <h3 className="text-lg font-medium text-gray-900">Información de la Tarea</h3>
+          <p className="mt-1 text-sm text-gray-500">Completa todos los campos para crear tu tarea</p>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6">
@@ -169,7 +172,7 @@ export default function NewTask() {
             {/* Title Field */}
             <div>
               <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-                Título de la solicitud
+                Título de la tarea
                 <span className="text-red-500"> *</span>
               </label>
               <input
@@ -200,7 +203,7 @@ export default function NewTask() {
                 value={form.description}
                 onChange={handleInputChange}
                 className="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 sm:text-sm resize-none"
-                placeholder="Describe los detalles específicos de tu solicitud, materiales necesarios, instrucciones especiales, etc."
+                placeholder="Describe los detalles específicos de tu tarea, materiales necesarios, instrucciones especiales, etc."
               />
               <div className="mt-1 text-xs text-gray-500">Proporciona todos los detalles relevantes para facilitar el servicio</div>
             </div>
@@ -330,7 +333,7 @@ export default function NewTask() {
                   <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  Guardar Solicitud
+                  Guardar Tarea
                 </>
               )}
             </button>
