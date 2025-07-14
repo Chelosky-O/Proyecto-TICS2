@@ -28,6 +28,7 @@ router.post('/login', async (req, res) => {
     {
       id:   user.id,
       name: user.name,
+      email: user.email,
       role: user.Role.name, // 'admin' | 'sg' | 'solicitante'
       area: user.area
     },
@@ -37,7 +38,7 @@ router.post('/login', async (req, res) => {
 
   res.json({
     token,
-    user: { id: user.id, name: user.name, role: user.Role.name, area: user.area }
+    user: { id: user.id, name: user.name, email: user.email, role: user.Role.name, area: user.area }
   });
 });
 

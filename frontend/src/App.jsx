@@ -6,6 +6,7 @@ import ProtectedLayout    from './layout/ProtectedLayout';
 
 import Login            from './pages/Login';
 import Dashboard        from './pages/Dashboard';
+import Profile          from './pages/Profile';
 import TasksSolicitante from './pages/TasksSolicitante';
 import NewTask          from './pages/NewTask';
 import TasksAdmin       from './pages/TasksAdmin';
@@ -26,6 +27,7 @@ export default function App() {
           {/* Layout con barra Inicio/Cerrar sesión */}
           <Route element={<ProtectedLayout />}>
             <Route index element={<Dashboard />} />
+            <Route path="profile" element={<Profile />} />
 
             {/* Solicitante + Admin */}
             <Route element={<ProtectedRoute roles={['solicitante', 'admin']} />}>

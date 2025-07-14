@@ -13,6 +13,54 @@ router.get('/me', async (req, res) => {
   res.json({ id, name, email, area, role });
 });
 
+/* ---------- PATCH /api/users/me  (editar perfil propio) ---------- */
+router.patch(
+  '/me',
+  body('name').optional().notEmpty(),
+  body('email').optional().isEmail(),
+  body('area').optional(),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
+
+    const user = await User.findByPk(req.auth.id);
+    if (!user) return res.status(404).end();
+
+    await user.update(req.body);
+    res.json({ id: user.id, name: user.name, email: user.email, area: user.area });
+  }
+);
+
+/* ---------- PATCH /api/users/me/password  (cambiar contraseña) ---------- */
+router.patch(
+  '/me/password',
+  body('currentPassword').notEmpty(),
+  body('newPassword').isLength({ min: 3 }),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
+
+    const user = await User.findByPk(req.auth.id);
+    if (!user) return res.status(404).end();
+
+    // Verificar contraseña actual
+    const isValidPassword = bcrypt.compareSync(req.body.currentPassword, user.password);
+    if (!isValidPassword) {
+      return res.status(400).json({ message: 'La contraseña actual es incorrecta' });
+    }
+
+    // Verificar que la nueva contraseña sea diferente a la actual
+    const isSamePassword = bcrypt.compareSync(req.body.newPassword, user.password);
+    if (isSamePassword) {
+      return res.status(400).json({ message: 'La nueva contraseña debe ser diferente a la contraseña actual' });
+    }
+
+    // Actualizar contraseña
+    await user.update({ password: bcrypt.hashSync(req.body.newPassword, 10) });
+    res.json({ message: 'Contraseña actualizada exitosamente' });
+  }
+);
+
 /* ---------- GET /api/users ---------- */
 router.get('/', rbac('admin'), async (_, res) => {
   const users = await User.findAll({

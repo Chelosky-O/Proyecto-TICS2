@@ -17,6 +17,14 @@ export default function Dashboard() {
   const navigationConfig = {
     solicitante: [
       {
+        to: '/profile',
+        label: 'Mi Perfil',
+        description: 'Visualiza y gestiona tu información personal.',
+        icon: 'user',
+        color: 'indigo',
+        action: 'Ver perfil'
+      },
+      {
         to: '/tasks',
         label: 'Mis Tareas',
         description: 'Visualiza y gestiona todas tus tareas activas e históricas.',
@@ -35,6 +43,14 @@ export default function Dashboard() {
     ],
     sg: [
       {
+        to: '/profile',
+        label: 'Mi Perfil',
+        description: 'Visualiza y gestiona tu información personal.',
+        icon: 'user',
+        color: 'indigo',
+        action: 'Ver perfil'
+      },
+      {
         to: '/calendar',
         label: 'Mi Calendario',
         description: 'Visualiza y gestiona tu calendario de tareas asignadas.',
@@ -44,6 +60,14 @@ export default function Dashboard() {
       },
     ],
     admin: [
+      {
+        to: '/profile',
+        label: 'Mi Perfil',
+        description: 'Visualiza y gestiona tu información personal.',
+        icon: 'user',
+        color: 'indigo',
+        action: 'Ver perfil'
+      },
       {
         to: '/tasks-admin',
         label: 'Todas las Tareas',
@@ -105,6 +129,11 @@ export default function Dashboard() {
   // Función para obtener el ícono SVG
   const getIcon = (iconName, colorClass) => {
     const icons = {
+      user: (
+        <svg className={`h-8 w-8 ${colorClass}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+      ),
       clipboard: (
         <svg className={`h-8 w-8 ${colorClass}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />

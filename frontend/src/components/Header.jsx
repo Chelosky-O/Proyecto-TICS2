@@ -56,7 +56,10 @@ export default function Header() {
             <div className="w-px h-6 bg-white/30"></div>
 
             {/* Perfil del usuario */}
-            <div className="flex items-center space-x-3">
+            <button
+              onClick={() => window.location.href = "/profile"}
+              className="flex items-center space-x-3 hover:bg-white/10 rounded-lg px-2 py-1 transition-all duration-200"
+            >
               <img
                 className="h-9 w-9 rounded-full border-2 border-white/30"
                 src={`https://ui-avatars.com/api/?name=${user.name}&background=6d28d9&color=fff`}
@@ -68,7 +71,7 @@ export default function Header() {
                   {roleDisplayNames[user.role]}
                 </p>
               </div>
-            </div>
+            </button>
 
             {/* Separador */}
             <div className="w-px h-6 bg-white/30"></div>

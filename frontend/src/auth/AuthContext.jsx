@@ -39,8 +39,16 @@ export function AuthProvider({ children }) {
     setUser(null);
   }
 
+  // Función para actualizar los datos del usuario sin necesidad de cerrar sesión
+  function updateUserData(newUserData) {
+    setUser(prevUser => ({
+      ...prevUser,
+      ...newUserData
+    }));
+  }
+
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUserData }}>
       {children}
     </AuthContext.Provider>
   );
